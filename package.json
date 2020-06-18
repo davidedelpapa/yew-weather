@@ -1,0 +1,25 @@
+{
+  "name": "yew-weather",
+  "version": "0.1.0",
+  "description": "Yew Development Environment (Rust + Yew + Node + Rollup)",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidedelpapa/yew-devenv.git"
+  },
+  "author": "Davide Del Papa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/davidedelpapa/yew-devenv/issues"
+  },
+  "homepage": "https://github.com/davidedelpapa/yew-devenv",
+  "devDependencies": {
+    "rollup-plugin-livereload": "^1.3.0"
+  },
+  "dependencies": {
+    "rollup-plugin-inject-env": "^0.1.0"
+  }
+}

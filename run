@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# trap ctrl-c and call ctrl_c()
+trap ctrl_c INT
+
+function ctrl_c() {
+        stop
+}
+
+help() {
+    echo "Run this script to get a dev-env with auto-build and hot reload"
+    echo "Run $0 --clean to try cleanup zombie server(s) [WARNING: it stops currently running servers in case]"
+}
+
+create_version() {
+    datetime=`date +"%D %T"`
+    cat > ./src/js/version.js << EOL
+// Do not modify; created programmatically
+export function __compiled() {
+    return "${datetime}"
+} 
+EOL
+}
+
+build(){
+    create_version
+    wasm-pack build --target web
+}
+
+pack(){
+    cmd="rollup -c"
+    $cmd &
+    PID=$!
+    echo $PID > .serverpid.rollup
+}
+
+run(){
+    thttp -p 8080 &
+    PID=$!
+    echo $PID > .serverpid
+}
+
+watch() {
+    cargo watch -w ./src --ignore "*.js" --postpone -s "$0 --reload" 
+}
+
+stop() {
+    kill $(cat .serverpid) 2>/dev/null
+    rm .serverpid
+}
+
+clean(){
+    if [ -f .serverpid ]; then
+        kill $(cat .serverpid)
+        rm .serverpid
+        echo "Server stopped."
+    else
+        echo "Could not find the server PID. Is it running?"
+    fi
+    if [ -f .serverpid.rollup ]; then
+        kill $(cat .serverpid.rollup)
+        rm .serverpid.rollup
+        echo "Hot-Reload server stopped."
+    else
+        echo "Could not find the hot-reload server PID. Is it running?"
+    fi
+}
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -r | --reload )         stop
+                                build
+                                run
+                                exit
+                                ;;
+        -c | --clean )          clean
+                                exit
+                                ;;
+        -h | --help )           help
+                                exit
+                                ;;
+    esac
+    shift
+done
+
+
+if [ -f .serverpid ]; then
+    echo "Server already running, or in an inconsistent state"
+    echo "Run $0 --clean to fix this"
+    exit 1
+fi
+
+# Test of a fresh install
+if [ -f .init ]; then
+    rm .init
+    mkdir pkg 2>/dev/null
+    cargo install thttp
+    cargo install wasm-pack
+    npm install --global rollup
+    npm init -y
+    npm install --save-dev rollup-plugin-livereload
+    npm install rollup-plugin-inject-env
+fi
+
+build && pack && run && watch
