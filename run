@@ -12,18 +12,7 @@ help() {
     echo "Run $0 --clean to try cleanup zombie server(s) [WARNING: it stops currently running servers in case]"
 }
 
-create_version() {
-    datetime=`date +"%D %T"`
-    cat > ./src/js/version.js << EOL
-// Do not modify; created programmatically
-export function __compiled() {
-    return "${datetime}"
-} 
-EOL
-}
-
 build(){
-    create_version
     wasm-pack build --target web
 }
 

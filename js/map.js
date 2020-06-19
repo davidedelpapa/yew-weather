@@ -19,13 +19,14 @@ var mymap = L.map('my_map',
   zoom: 6,
   layers: [basemap, weathermap]
 });
+
 var baseMaps = {
     "Terrain": basemap
 };
-
 var overlayMaps = {
-    "Heat": weathermap
+    "Heat map": weathermap
 };
+
 L.control.layers(baseMaps, overlayMaps).addTo(mymap);
 
 export var map=mymap;

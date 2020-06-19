@@ -2,8 +2,6 @@
 mod app;
 mod components;
 use wasm_bindgen::prelude::*;
-use yew::prelude::*;
-
 
 #[wasm_bindgen(start)]
 pub fn run_app() -> Result<(), JsValue> {

@@ -7,5 +7,8 @@ export default {
     file: "pkg/bundle.js",
     format: "iife",
   },
-  plugins: [livereload("pkg"), injectEnv()],
+  plugins: [
+    livereload('pkg'), 
+    injectEnv()
+  ],
 };
