@@ -6,6 +6,7 @@ export default {
   output: {
     file: "pkg/bundle.js",
     format: "iife",
+    name: 'bundle',
   },
   plugins: [
     livereload('pkg'), 
