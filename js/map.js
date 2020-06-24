@@ -1,3 +1,5 @@
+import base_features from "./objects.geo";
+
 var lat=process.env.LATITUDE;
 var lng=process.env.LONGITUDE;
 var mapbox_token = process.env.BASEMAP_KEY;
@@ -9,7 +11,8 @@ var mapboxurl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_
 var basemap = L.tileLayer(mapboxurl,
 {
   attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-  maxZoom: 18,
+  maxNativeZoom: 18,
+  maxZoom: 20,
   id: 'mapbox/streets-v11',
   tileSize: 512,
   zoomOffset: -1,
@@ -20,7 +23,8 @@ var basemap = L.tileLayer(mapboxurl,
 var satmap = L.tileLayer(mapboxurl,
 {
   attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-  maxZoom: 18,
+  maxNativeZoom: 18,
+  maxZoom: 20,
   id: 'mapbox/satellite-v9',
   tileSize: 512,
   zoomOffset: -1,
@@ -34,6 +38,43 @@ function onEachFeature(feature, layer) {
       layer.bindPopup(feature.properties.popupContent);
   }
 }
+
+function pointToLayer(feature, latlng) {
+  if (feature.properties && feature.properties.markerIcon) {
+    if (feature.properties.markerColor) {
+      var color = feature.properties.markerColor;
+    }
+    else {
+      var color = '#725139';
+    }
+    if (feature.properties.markerBGColor) {
+      var BGcolor = feature.properties.markerBGColor;
+    }
+    else {
+      var BGcolor = '#f2c357';
+    }
+    if (feature.properties.markerSize) {
+      var size = feature.properties.markerSize;
+    }
+    else {
+      var size = 30;
+    }
+    var mki = L.icon.mapkey({
+      icon: feature.properties.markerIcon,
+      color: color,
+      background: BGcolor,
+      size:size
+    });
+    return L.marker(latlng, {icon:mki});
+  }
+  return L.marker(latlng);
+}
+
+// First overlay
+var first_overlay = L.geoJSON(base_features, {
+  onEachFeature: onEachFeature,
+  pointToLayer: pointToLayer,
+});
 
 // Get geoJSON data from the sessionStorage
 function get_data() {
@@ -49,17 +90,27 @@ function get_data() {
 function get_datalayer () {
   var geojsonData = get_data();
   return L.geoJSON(geojsonData, {
-    onEachFeature: onEachFeature
+    onEachFeature: onEachFeature,
+    pointToLayer: pointToLayer,
   })
 }
 var infolayer = get_datalayer();
+
+// Declare bounds
+var southWest = L.latLng(42.583631, 14.092246),
+    northEast = L.latLng(42.586724, 14.087289),
+    mybounds = L.latLngBounds(southWest, northEast);
 
 // The map
 var mymap = L.map('my_map',
   {
     center: position,
     zoom: 18,
-    layers: [basemap, satmap, infolayer]
+    minZoom:15,
+    maxZoom: 20,
+    maxBounds: mybounds,
+    maxBoundsViscosity: 1.0,
+    layers: [basemap, satmap, first_overlay, infolayer]
   });
 
 // Basemaps in Layer Control
@@ -74,15 +125,33 @@ var overlayMap = {
 // Layer Control
 var controls = L.control.layers(baseMaps, overlayMap).addTo(mymap);
 
+// Marker
+/*
+var mki = L.icon.mapkey({icon:"castle",color:'#725139',background:'#f2c357',size:30});
+// Append to marker:
+L.marker(position,{icon:mki}).addTo(mymap);
+*/
+
 // Function to redraw the geoJSON layer, and its control
 // connected then to an event
 function redrawLayer(e){
   controls.removeLayer(infolayer);
-  mymap.removeLayer( infolayer);
+  mymap.removeLayer(infolayer);
   infolayer = get_datalayer();
   infolayer.addTo(mymap);
   controls.addOverlay(infolayer, "Info");
 }
 mymap.on('submit', redrawLayer);
+
+// Popup with position
+var popup = L.popup();
+function onMapClick(e) {
+    var rev_coord = [e.latlng.lng, e.latlng.lat]
+    popup
+        .setLatLng(e.latlng)
+        .setContent("Position " + e.latlng.toString() + "<br/>GeoJSON: [" + rev_coord + "]")
+        .openOn(mymap);
+}
+mymap.on('click', onMapClick);
 
 export default mymap;

@@ -3,6 +3,19 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, Map};
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FeatureCollection {
+    pub r#type: String,
+    pub features: Vec<Feature>,
+}
+impl FeatureCollection {
+    pub fn new()-> Self {
+        FeatureCollection {
+            r#type: "FeatureCollection".to_string(),
+            features: Vec::new(),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Feature {
