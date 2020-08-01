@@ -1,14 +1,18 @@
 use crate::components::button::Button;
 use crate::data::geojson::*;
+use crate::data::onecall::OneCall;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::Area;
-use yew::services::StorageService;
+use yew::services::{StorageService, console::ConsoleService};
+use yew::services::fetch::FetchTask;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 use rand::prelude::*;
 use rand::rngs::ThreadRng;
 use load_dotenv::load_dotenv;
+use anyhow::Error;
+use crate::fetchweather::WeatherService;
 
 const GEOJSON_KEY: &'static str = "geojsonData";
 load_dotenv!();
@@ -21,6 +25,7 @@ extern "C" {
 pub enum Msg {
     AddOne,
     RemoveOne,
+    WeatherReady(Result<OneCall, Error>),
 }
 
 pub struct App {
@@ -30,6 +35,11 @@ pub struct App {
     geo_data: Vec<Feature>,
     position: Vec<f64>,
     rng: ThreadRng,
+    //console: ConsoleService,
+    weather_service: WeatherService,
+    callback: Callback<Result<OneCall, Error>>,
+    task: Option<FetchTask>,
+    weather: Option<OneCall>,
 }
 
 impl Component for App {
@@ -37,7 +47,6 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        // Watchout! New: Now it returns a Result
         let storage = StorageService::new(Area::Session).expect("storage was disabled by the user");
         let Json(geo_data) = storage.restore(GEOJSON_KEY);
         let geo_data = geo_data.unwrap_or_else(|_| Vec::new());
@@ -48,16 +57,29 @@ impl Component for App {
         let lng = env!("LONGITUDE", "Cound not find LONGITUDE in .env");
         let lat: f64 = str2f64(lat);
         let lng: f64 = str2f64(lng);
-        // Longitude first! geoJSON and Leaflet take opposite conventions!
         let position = vec!(lng, lat);
-
+        let weather_key=env!("WEATHER_KEY","Cound not find WEATHER_KEY in .env").to_string();
         App {
-            link: link,
+            link: link.clone(),
             counter: 0,
             storage,
             geo_data,
             position,
-            rng,            
+            rng,
+            //console: ConsoleService::new(),
+            weather_service: WeatherService::new(lat, lng, "metric".to_string(), weather_key),
+            callback: link.callback(Msg::WeatherReady),
+            weather: None,
+            task: None,
+        }
+    }
+
+    fn rendered(&mut self, first_render: bool) {
+        if first_render {
+            let task = self
+                .weather_service
+                .get_weather(self.callback.clone());
+            self.task = Some(task);
         }
     }
 
@@ -92,6 +114,15 @@ impl Component for App {
 
                 self.storage.store(GEOJSON_KEY, Json(&self.geo_data));
                 update_map();
+            }
+            Msg::WeatherReady(Ok(weather)) => {
+                self.weather = Some(weather);
+                ConsoleService::log(format!("Weather info: {:?}", self.weather).as_str());
+                return false;
+            }
+            Msg::WeatherReady(Err(e)) => {
+                ConsoleService::error(format!("Error: {}, while retrieving weather info", e).as_str());
+                return false;
             }
         }
         true

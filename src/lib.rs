@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 mod app;
+mod fetchweather;
 mod components;
 mod data;
 use wasm_bindgen::prelude::*;

@@ -70,6 +70,14 @@ function pointToLayer(feature, latlng) {
   return L.marker(latlng);
 }
 
+function styleProps(feature) {
+  if (feature.properties) {
+    if (feature.properties.color) {
+      return {color: color};
+    }
+  }
+}
+
 // First overlay
 var first_overlay = L.geoJSON(base_features, {
   onEachFeature: onEachFeature,

@@ -7,4 +7,5 @@ package-lock.json
 .serverpid
 .serverpid.rollup
 .env
-onecall.*
+onecall.txt
+onecall.json
