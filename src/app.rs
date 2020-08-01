@@ -116,9 +116,26 @@ impl Component for App {
                 update_map();
             }
             Msg::WeatherReady(Ok(weather)) => {
-                self.weather = Some(weather);
+                self.weather = Some(weather.clone());
                 ConsoleService::log(format!("Weather info: {:?}", self.weather).as_str());
-                return false;
+
+                //Create a point near the beach
+                let pos = vec!(14.08937, 42.585314);
+                let point = Geometry::new_point(pos.into());
+                let mut feat = Feature::new();
+                feat.add_geomerty(Some(point));
+                // Extract weather info
+                let current_weather = weather.current.unwrap();
+                let weather_condition = current_weather.weather[0].as_ref();
+                let weather_description = weather_condition.unwrap().description.as_ref();
+                // Add on map with an info icon
+                feat.add_property("popupContent".into(), weather_description.unwrap().as_str().into());
+                feat.add_property("markerIcon".into(), "information".into());
+                // Pass it over the fence
+                self.geo_data.insert(0, feat);
+                self.storage.store(GEOJSON_KEY, Json(&self.geo_data));
+                // Update the map
+                update_map();
             }
             Msg::WeatherReady(Err(e)) => {
                 ConsoleService::error(format!("Error: {}, while retrieving weather info", e).as_str());
