@@ -1,4 +1,5 @@
 use crate::components::button::Button;
+use crate::components::image::Image;
 use crate::data::geojson::*;
 use crate::data::onecall::OneCall;
 use yew::format::Json;
@@ -23,8 +24,6 @@ extern "C" {
 }
 
 pub enum Msg {
-    AddOne,
-    RemoveOne,
     WeatherReady(Result<OneCall, Error>),
 }
 
@@ -85,36 +84,6 @@ impl Component for App {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::AddOne => {
-                self.counter += 1;
-
-                let position: Vec<f64> = self.position.clone().into_iter()
-                    .map(|x: f64| {
-                        let d: f64 = self.rng.gen_range(0.00001, 0.0003);
-                        if random() {
-                            return x-d;
-                        }
-                        x+d
-                    }).collect();
-                let position: Value = position.into();
-                let point = Geometry::new_point(position);
-
-                let mut feat = Feature::new();
-                feat.add_geomerty(Some(point));
-                feat.add_property("popupContent".into(), self.counter.to_string().into());
-                self.geo_data.push(feat);
-                
-                self.storage.store(GEOJSON_KEY, Json(&self.geo_data));
-                update_map();
-            }
-            Msg::RemoveOne => {
-                self.counter -= if self.counter == 0 { 0 } else { 1 };
-
-                let _ = self.geo_data.pop();
-
-                self.storage.store(GEOJSON_KEY, Json(&self.geo_data));
-                update_map();
-            }
             Msg::WeatherReady(Ok(weather)) => {
                 self.weather = Some(weather.clone());
                 ConsoleService::log(format!("Weather info: {:?}", self.weather).as_str());
@@ -151,10 +120,7 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
-            <>
-                <Button onsignal=self.link.callback(|_| Msg::RemoveOne) title="-1" />
-                <Button onsignal=self.link.callback(|_| Msg::AddOne) title="+1" />
-            </>
+            <Image img="./img/test.jpg".to_owned() caption="".to_owned() />
         }
     }
 }
