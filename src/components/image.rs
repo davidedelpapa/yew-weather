@@ -12,7 +12,10 @@ pub struct PureImage {
 impl PureComponent for PureImage {
     fn render(&self) -> Html {
         html! {
-            <img src=&self.img alt=&self.caption />
+            <div>
+                <img src=&self.img alt=&self.caption />
+                <p>{ &self.caption }</p>
+            </div>
         } 
     }
 }

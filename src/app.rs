@@ -1,7 +1,7 @@
 use crate::components::button::Button;
 use crate::components::image::Image;
 use crate::data::geojson::*;
-use crate::data::onecall::OneCall;
+use crate::data::onecall::{OneCall, WeatherDaily};
 use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::Area;
@@ -86,7 +86,7 @@ impl Component for App {
         match msg {
             Msg::WeatherReady(Ok(weather)) => {
                 self.weather = Some(weather.clone());
-                ConsoleService::log(format!("Weather info: {:?}", self.weather).as_str());
+                //ConsoleService::log(format!("Weather info: {:?}", self.weather).as_str());
 
                 //Create a point near the beach
                 let pos = vec!(14.08937, 42.585314);
@@ -119,8 +119,53 @@ impl Component for App {
     }
 
     fn view(&self) -> Html {
-        html! {
-            <Image img="./img/test.jpg".to_owned() caption="".to_owned() />
+        let render_icon = |daily: &WeatherDaily| {
+            let daily_condition = daily.weather[0].as_ref();
+            match daily_condition {
+                Some(daily_condition)=> {
+                    let weather_description = match daily_condition.description.as_ref() {
+                        Some(description) => description.to_owned(),
+                        None => {
+                            let ret = "".to_string();
+                            ret
+                        }
+                    };
+                    let weather_icon = match daily_condition.icon.as_ref() {
+                        Some(icon) => format!("http://openweathermap.org/img/wn/{}.png", icon),
+                        None => {
+                            let ret = "".to_string();
+                            ret
+                        }
+                    };
+                    //ConsoleService::log(format!("Weather description: {:?}", &weather_description).as_str());
+                    html! {
+                        <div class="column">
+                            <Image img=&weather_icon caption=&weather_description />
+                        </div>
+                    }
+                },
+                None => html! { <div> </div> }
+            }
+        };
+        let weather_data=self.weather.as_ref();
+        match weather_data {
+            Some(weather) => {
+                let daily_weather = weather.daily.as_ref().unwrap();
+                html! {
+                    <div>
+                        <div class="container">
+                            <div class="row">
+                                {for daily_weather.iter().take(3).map(render_icon)}
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            None => html! {
+                <div>
+                    { "Loading Weather data..."}
+                </div>
+            }
         }
     }
 }
