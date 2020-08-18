@@ -73,7 +73,16 @@ function pointToLayer(feature, latlng) {
 function styleProps(feature) {
   if (feature.properties) {
     if (feature.properties.color) {
-      return {color: color};
+      return {color: feature.properties.color};
+    }
+    if (feature.properties.fill) {
+      return {fill: feature.properties.fill};
+    }
+    if (feature.properties.fillColor) {
+      return {fillColor: feature.properties.fillColor};
+    }
+    if (feature.properties.fillOpacity) {
+      return {fillOpacity: feature.properties.fillOpacity};
     }
   }
 }
@@ -90,10 +99,10 @@ function get_basefeatures_overlay() {
 // Create a first_overlay for base_features data
 function get_overlay_layer () {
   var geojsonData = get_basefeatures_overlay();
-  //console.log(geojsonData)
   return L.geoJSON(geojsonData, {
     onEachFeature: onEachFeature,
     pointToLayer: pointToLayer,
+    style: styleProps,
   })
 }
 var first_overlay = get_overlay_layer();
