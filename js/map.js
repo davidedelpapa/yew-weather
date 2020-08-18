@@ -1,4 +1,4 @@
-import base_features from "./objects.geo";
+//import base_features from "./objects.geo";
 
 var lat=process.env.LATITUDE;
 var lng=process.env.LONGITUDE;
@@ -79,10 +79,26 @@ function styleProps(feature) {
 }
 
 // First overlay
-var first_overlay = L.geoJSON(base_features, {
-  onEachFeature: onEachFeature,
-  pointToLayer: pointToLayer,
-});
+function get_basefeatures_overlay() {
+  var base_features = [];
+  var rawbasefeatures = sessionStorage.basefeatures;
+  if(rawbasefeatures || rawbasefeatures === "") {
+    var base_features = JSON.parse(rawbasefeatures);
+  }
+  return base_features
+}
+// Create a first_overlay for base_features data
+function get_overlay_layer () {
+  var geojsonData = get_basefeatures_overlay();
+  //console.log(geojsonData)
+  return L.geoJSON(geojsonData, {
+    onEachFeature: onEachFeature,
+    pointToLayer: pointToLayer,
+  })
+}
+var first_overlay = get_overlay_layer();
+
+
 
 // Get geoJSON data from the sessionStorage
 function get_data() {
@@ -144,9 +160,16 @@ L.marker(position,{icon:mki}).addTo(mymap);
 // connected then to an event
 function redrawLayer(e){
   controls.removeLayer(infolayer);
+  
   mymap.removeLayer(infolayer);
+  mymap.removeLayer(first_overlay);
+
   infolayer = get_datalayer();
   infolayer.addTo(mymap);
+
+  first_overlay = get_overlay_layer();
+  first_overlay.addTo(mymap);
+
   controls.addOverlay(infolayer, "Info");
 }
 mymap.on('submit', redrawLayer);

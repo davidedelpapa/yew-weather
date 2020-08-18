@@ -1,21 +1,21 @@
-use crate::components::button::Button;
 use crate::components::image::Image;
 use crate::data::geojson::*;
 use crate::data::onecall::{OneCall, WeatherDaily};
+use crate::data::geodata;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::Area;
 use yew::services::{StorageService, console::ConsoleService};
 use yew::services::fetch::FetchTask;
-use serde_json::Value;
+use serde_json::from_str;
 use wasm_bindgen::prelude::*;
 use rand::prelude::*;
-use rand::rngs::ThreadRng;
 use load_dotenv::load_dotenv;
 use anyhow::Error;
 use crate::fetchweather::WeatherService;
 
 const GEOJSON_KEY: &'static str = "geojsonData";
+const BASE_FEATURES_KEY: &'static str = "basefeatures";
 load_dotenv!();
 
 #[wasm_bindgen(module = "/js/wasm_bridge.js")]
@@ -29,12 +29,9 @@ pub enum Msg {
 
 pub struct App {
     link: ComponentLink<Self>,
-    counter: i32,
     storage: StorageService,
     geo_data: Vec<Feature>,
     position: Vec<f64>,
-    rng: ThreadRng,
-    //console: ConsoleService,
     weather_service: WeatherService,
     callback: Callback<Result<OneCall, Error>>,
     task: Option<FetchTask>,
@@ -46,26 +43,36 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let storage = StorageService::new(Area::Session).expect("storage was disabled by the user");
-        let Json(geo_data) = storage.restore(GEOJSON_KEY);
-        let geo_data = geo_data.unwrap_or_else(|_| Vec::new());
-
-        let rng = thread_rng();
+        let mut storage = StorageService::new(Area::Session).expect("storage was disabled by the user");
         
-        let lat = env!("LATITUDE","Cound not find LATITUDE in .env");
-        let lng = env!("LONGITUDE", "Cound not find LONGITUDE in .env");
+        let Json(geo_data) = storage.restore(GEOJSON_KEY);
+        let mut geo_data = geo_data.unwrap_or_else(|_| Vec::new());
+
+        let Json(baselayer) = storage.restore(BASE_FEATURES_KEY);
+        let baselayer = baselayer.unwrap_or_else(|_| FeatureCollection::new());
+
+        let basic_layer: Result<FeatureCollection, _> = from_str(geodata::BASE_FEATURES);
+        match basic_layer {
+            Ok(layer) => {
+                storage.store(BASE_FEATURES_KEY, Json(&layer));
+                update_map();
+        },
+            _ => { ConsoleService::error("Error loading the base layer"); },
+        };
+       
+        let lat = env!("LATITUDE","Could not find LATITUDE in .env");
+        let lng = env!("LONGITUDE", "Could not find LONGITUDE in .env");
         let lat: f64 = str2f64(lat);
         let lng: f64 = str2f64(lng);
         let position = vec!(lng, lat);
-        let weather_key=env!("WEATHER_KEY","Cound not find WEATHER_KEY in .env").to_string();
+        let weather_key=env!("WEATHER_KEY","Could not find WEATHER_KEY in .env").to_string();
+
+        
         App {
             link: link.clone(),
-            counter: 0,
             storage,
             geo_data,
             position,
-            rng,
-            //console: ConsoleService::new(),
             weather_service: WeatherService::new(lat, lng, "metric".to_string(), weather_key),
             callback: link.callback(Msg::WeatherReady),
             weather: None,
@@ -79,6 +86,7 @@ impl Component for App {
                 .weather_service
                 .get_weather(self.callback.clone());
             self.task = Some(task);
+
         }
     }
 
